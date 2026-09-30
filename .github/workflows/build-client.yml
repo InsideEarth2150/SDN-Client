@@ -36,17 +36,24 @@ jobs:
 
       - name: Compile Linux Client Binary
         run: |
-          g++ -std=c++17 -O2 client_proxy.cpp \
+          g++ -std=c++17 -O2 src/client_proxy.cpp \
+            -I./src \
             -I./gns/include \
             -L./gns/build/lib \
             -lGameNetworkingSockets -lssl -lcrypto -lprotobuf -lpthread \
             -o gns_client_linux
 
+      - name: Prepare Artifact Bundle
+        run: |
+          mkdir -p artifact_dir
+          cp gns_client_linux artifact_dir/
+          cp app/client_config.toml artifact_dir/
+
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gns_client_linux
-          path: gns_client_linux
+          path: artifact_dir/
 
   build-windows:
     name: Build Windows Client (.exe)
@@ -82,7 +89,8 @@ jobs:
       - name: Compile Windows Client Executable
         shell: cmd
         run: |
-          cl.exe /EHsc /O2 /std:c++17 client_proxy.cpp ^
+          cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
+            /I.\src ^
             /I.\gns\include ^
             /I\vcpkg\installed\x64-windows-static\include ^
             .\gns\build\lib\Release\GameNetworkingSockets.lib ^
@@ -92,11 +100,18 @@ jobs:
             ws2_32.lib crypt32.lib advapi32.lib user32.lib ^
             /Fe:gns_client.exe
 
+      - name: Prepare Artifact Bundle
+        shell: cmd
+        run: |
+          mkdir artifact_dir
+          copy gns_client.exe artifact_dir\
+          copy app\client_config.toml artifact_dir\
+
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gns_client_windows
-          path: gns_client.exe
+          path: artifact_dir/
 
   build-macos:
     name: Build macOS Client
@@ -125,7 +140,8 @@ jobs:
 
       - name: Compile macOS Client Binary
         run: |
-          clang++ -std=c++17 -O2 client_proxy.cpp \
+          clang++ -std=c++17 -O2 src/client_proxy.cpp \
+            -I./src \
             -I./gns/include \
             -I$(brew --prefix openssl)/include \
             -I$(brew --prefix protobuf)/include \
@@ -135,11 +151,17 @@ jobs:
             -lGameNetworkingSockets -lssl -lcrypto -lprotobuf -lpthread \
             -o gns_client_mac
 
+      - name: Prepare Artifact Bundle
+        run: |
+          mkdir -p artifact_dir
+          cp gns_client_mac artifact_dir/
+          cp app/client_config.toml artifact_dir/
+
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gns_client_mac
-          path: gns_client_mac
+          path: artifact_dir/
 
   create-release:
     name: Create GitHub Release
@@ -152,27 +174,30 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gns_client_linux
-          path: ./bin/
+          path: ./bin/linux/
 
       - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
           name: gns_client_windows
-          path: ./bin/
+          path: ./bin/windows/
 
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
           name: gns_client_mac
-          path: ./bin/
+          path: ./bin/macos/
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./bin/gns_client_linux
-            ./bin/gns_client.exe
-            ./bin/gns_client_mac
+            ./bin/linux/gns_client_linux
+            ./bin/linux/client_config.toml
+            ./bin/windows/gns_client.exe
+            ./bin/windows/client_config.toml
+            ./bin/macos/gns_client_mac
+            ./bin/macos/client_config.toml
           draft: false
           prerelease: false
         env:

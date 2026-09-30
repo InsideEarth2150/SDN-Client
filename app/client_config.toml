@@ -1,0 +1,23 @@
+[client_proxy]
+remote_proxy_host = "127.0.0.1"
+remote_proxy_port = 17171
+connect_timeout_ms = 5000
+game_server_port = 17171
+
+[client_proxy.ports]
+# Multiple single TCP and UDP ports
+single_tcp = [47624]
+single_udp = [6703]
+
+# Multiple port ranges for TCP and UDP (e.g., [min, max])
+tcp_ranges = []
+udp_ranges = [
+    [2300, 2400]
+]
+
+[p2p.stun]
+enabled = true
+servers = [
+    "stun.2150.insideearth.info:50000"
+]
+ice_check_timeout_ms = 3000
