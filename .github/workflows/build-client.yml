@@ -63,17 +63,10 @@ jobs:
       - name: Setup MSBuild / C++ Environment
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Download Precompiled Protobuf & OpenSSL
+      - name: Install Dependencies via Chocolatey
         shell: powershell
         run: |
-          # Download precompiled Protobuf Windows release to avoid building from source
-          $protoVersion = "28.3"
-          Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v$($protoVersion)/protoc-$($protoVersion)-win64.zip" -OutFile "protoc.zip"
-          Expand-Archive -Path "protoc.zip" -DestinationPath "C:\protobuf"
-
-          # Download precompiled OpenSSL (or use pre-installed vcpkg binaries if cached, but direct download is fastest)
-          # Let's use chocolatey/winget or fetch prebuilt headers/libs for speed
-          choco install openssl -y
+          choco install openssl protobuf -y
 
       - name: Build GameNetworkingSockets Library
         shell: cmd
@@ -81,12 +74,10 @@ jobs:
           git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git third_party_gns
           cd third_party_gns
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release ^
+          cmake .. -G "Visual Studio 17 2022" -A x64 ^
+            -DCMAKE_BUILD_TYPE=Release ^
             -DBUILD_SHARED_LIBS=OFF ^
-            -DENABLE_ICE=OFF ^
-            -DProtobuf_INCLUDE_DIR=C:/protobuf/include ^
-            -DProtobuf_LIBRARIES=C:/protobuf/lib/libprotobuf.lib ^
-            -DProtobuf_PROTOC_EXECUTABLE=C:/protobuf/bin/protoc.exe
+            -DENABLE_ICE=OFF
           cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
 
       - name: Compile Windows Client Executable
@@ -95,10 +86,10 @@ jobs:
           cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
             /I.\src ^
             /I.\third_party_gns\include ^
-            /IC:\protobuf\include ^
+            /IC:\ProgramData\chocolatey\lib\protobuf\tools\include ^
             /IC:\Program Files\OpenSSL-Win64\include ^
             .\third_party_gns\build\src\Release\GameNetworkingSockets_s.lib ^
-            C:\protobuf\lib\libprotobuf.lib ^
+            C:\ProgramData\chocolatey\lib\protobuf\tools\lib\libprotobuf.lib ^
             C:\Program Files\OpenSSL-Win64\lib\libssl.lib ^
             C:\Program Files\OpenSSL-Win64\lib\libcrypto.lib ^
             ws2_32.lib crypt32.lib advapi32.lib user32.lib shell32.lib legacy_stdio_definitions.lib ^
