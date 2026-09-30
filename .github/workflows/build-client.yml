@@ -60,6 +60,17 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup vcpkg Binary Caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:/vcpkg/installed
+            C:/vcpkg/packages
+            C:/Users/runneradmin/AppData/Local/vcpkg/archives
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}-${{ hashFiles('.gitmodules') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
       - name: Install vcpkg Dependencies
         run: |
           vcpkg install openssl:x64-windows-static protobuf:x64-windows-static
