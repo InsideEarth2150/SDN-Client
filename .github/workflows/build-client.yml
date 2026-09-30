@@ -78,8 +78,7 @@ jobs:
           git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git third_party_gns
           cd third_party_gns
           mkdir build && cd build
-          cmake .. -G "Visual Studio 17 2022" -A x64 ^
-            -DCMAKE_BUILD_TYPE=Release ^
+          cmake .. -DCMAKE_BUILD_TYPE=Release ^
             -DBUILD_SHARED_LIBS=OFF ^
             -DENABLE_ICE=OFF ^
             -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
