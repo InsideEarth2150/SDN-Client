@@ -29,8 +29,8 @@ jobs:
 
       - name: Build GameNetworkingSockets Library
         run: |
-          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git gns
-          cd gns && mkdir build && cd build
+          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git third_party_gns
+          cd third_party_gns && mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DENABLE_ICE=OFF
           cmake --build . --parallel $(nproc)
 
@@ -38,9 +38,9 @@ jobs:
         run: |
           g++ -std=c++17 -O2 src/client_proxy.cpp \
             -I./src \
-            -I./gns/include \
-            -L./gns/build/lib \
-            -lGameNetworkingSockets -lssl -lcrypto -lprotobuf -lpthread \
+            -I./third_party_gns/include \
+            -L./third_party_gns/build/src \
+            -lGameNetworkingSockets_s -lssl -lcrypto -lprotobuf -lpthread \
             -o gns_client_linux
 
       - name: Prepare Artifact Bundle
@@ -75,8 +75,8 @@ jobs:
       - name: Build GameNetworkingSockets Library
         shell: cmd
         run: |
-          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git gns
-          cd gns
+          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git third_party_gns
+          cd third_party_gns
           mkdir build && cd build
           cmake .. -G "Visual Studio 17 2022" -A x64 ^
             -DCMAKE_BUILD_TYPE=Release ^
@@ -91,9 +91,9 @@ jobs:
         run: |
           cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
             /I.\src ^
-            /I.\gns\include ^
+            /I.\third_party_gns\include ^
             /I\vcpkg\installed\x64-windows-static\include ^
-            .\gns\build\lib\Release\GameNetworkingSockets.lib ^
+            .\third_party_gns\build\src\Release\GameNetworkingSockets_s.lib ^
             \vcpkg\installed\x64-windows-static\lib\libssl.lib ^
             \vcpkg\installed\x64-windows-static\lib\libcrypto.lib ^
             \vcpkg\installed\x64-windows-static\lib\libprotobuf.lib ^
@@ -129,8 +129,8 @@ jobs:
 
       - name: Build GameNetworkingSockets Library
         run: |
-          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git gns
-          cd gns && mkdir build && cd build
+          git clone --recursive https://github.com/ValveSoftware/GameNetworkingSockets.git third_party_gns
+          cd third_party_gns && mkdir build && cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
@@ -142,13 +142,13 @@ jobs:
         run: |
           clang++ -std=c++17 -O2 src/client_proxy.cpp \
             -I./src \
-            -I./gns/include \
+            -I./third_party_gns/include \
             -I$(brew --prefix openssl)/include \
             -I$(brew --prefix protobuf)/include \
-            -L./gns/build/lib \
+            -L./third_party_gns/build/src \
             -L$(brew --prefix openssl)/lib \
             -L$(brew --prefix protobuf)/lib \
-            -lGameNetworkingSockets -lssl -lcrypto -lprotobuf -lpthread \
+            -lGameNetworkingSockets_s -lssl -lcrypto -lprotobuf -lpthread \
             -o gns_client_mac
 
       - name: Prepare Artifact Bundle
