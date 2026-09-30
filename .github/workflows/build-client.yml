@@ -60,9 +60,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup MSBuild / C++ Environment
-        uses: ilammy/msvc-dev-cmd@v1
-
       - name: Install vcpkg Dependencies
         run: |
           vcpkg install openssl:x64-windows-static protobuf:x64-windows-static
@@ -76,7 +73,7 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=Release ^
             -DBUILD_SHARED_LIBS=OFF ^
             -DENABLE_ICE=OFF ^
-            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+            -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake ^
             -DVCPKG_TARGET_TRIPLET=x64-windows-static
           cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
 
@@ -86,12 +83,13 @@ jobs:
           cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
             /I.\src ^
             /I.\third_party_gns\include ^
-            /I\vcpkg\installed\x64-windows-static\include ^
+            /I%VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\include ^
             .\third_party_gns\build\src\Release\GameNetworkingSockets_s.lib ^
-            \vcpkg\installed\x64-windows-static\lib\libssl.lib ^
-            \vcpkg\installed\x64-windows-static\lib\libcrypto.lib ^
-            \vcpkg\installed\x64-windows-static\lib\libprotobuf.lib ^
-            ws2_32.lib crypt32.lib advapi32.lib user32.lib ^
+            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\libprotobuf.lib ^
+            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\abseil.lib ^
+            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\ssl.lib ^
+            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\crypto.lib ^
+            ws2_32.lib crypt32.lib advapi32.lib user32.lib shell32.lib legacy_stdio_definitions.lib ^
             /Fe:gns_client.exe
 
       - name: Prepare Artifact Bundle
