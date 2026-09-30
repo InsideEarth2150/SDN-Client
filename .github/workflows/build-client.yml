@@ -1,11 +1,6 @@
 name: Build Client Proxies & Create Release
 
 on:
-  push:
-    branches: [ "main", "master" ]
-    tags: [ "v*" ]
-  pull_request:
-    branches: [ "main", "master" ]
   workflow_dispatch:
 
 permissions:
@@ -165,7 +160,7 @@ jobs:
   create-release:
     name: Create GitHub Release
     needs: [build-linux, build-windows, build-macos]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: success()
     runs-on: ubuntu-latest
 
     steps:
