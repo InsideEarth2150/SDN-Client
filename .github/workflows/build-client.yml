@@ -60,20 +60,20 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup vcpkg Binary Caching
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:/vcpkg/installed
-            C:/vcpkg/packages
-            C:/Users/runneradmin/AppData/Local/vcpkg/archives
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}-${{ hashFiles('.gitmodules') }}
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-
+      - name: Setup MSBuild / C++ Environment
+        uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install vcpkg Dependencies
+      - name: Download Precompiled Protobuf & OpenSSL
+        shell: powershell
         run: |
-          vcpkg install openssl:x64-windows-static protobuf:x64-windows-static
+          # Download precompiled Protobuf Windows release to avoid building from source
+          $protoVersion = "28.3"
+          Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v$($protoVersion)/protoc-$($protoVersion)-win64.zip" -OutFile "protoc.zip"
+          Expand-Archive -Path "protoc.zip" -DestinationPath "C:\protobuf"
+
+          # Download precompiled OpenSSL (or use pre-installed vcpkg binaries if cached, but direct download is fastest)
+          # Let's use chocolatey/winget or fetch prebuilt headers/libs for speed
+          choco install openssl -y
 
       - name: Build GameNetworkingSockets Library
         shell: cmd
@@ -84,8 +84,9 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=Release ^
             -DBUILD_SHARED_LIBS=OFF ^
             -DENABLE_ICE=OFF ^
-            -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%/scripts/buildsystems/vcpkg.cmake ^
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static
+            -DProtobuf_INCLUDE_DIR=C:/protobuf/include ^
+            -DProtobuf_LIBRARIES=C:/protobuf/lib/libprotobuf.lib ^
+            -DProtobuf_PROTOC_EXECUTABLE=C:/protobuf/bin/protoc.exe
           cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS%
 
       - name: Compile Windows Client Executable
@@ -94,12 +95,12 @@ jobs:
           cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
             /I.\src ^
             /I.\third_party_gns\include ^
-            /I%VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\include ^
+            /IC:\protobuf\include ^
+            /IC:\Program Files\OpenSSL-Win64\include ^
             .\third_party_gns\build\src\Release\GameNetworkingSockets_s.lib ^
-            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\libprotobuf.lib ^
-            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\abseil.lib ^
-            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\ssl.lib ^
-            %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static\lib\crypto.lib ^
+            C:\protobuf\lib\libprotobuf.lib ^
+            C:\Program Files\OpenSSL-Win64\lib\libssl.lib ^
+            C:\Program Files\OpenSSL-Win64\lib\libcrypto.lib ^
             ws2_32.lib crypt32.lib advapi32.lib user32.lib shell32.lib legacy_stdio_definitions.lib ^
             /Fe:gns_client.exe
 
