@@ -60,13 +60,23 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup MSBuild / C++ Environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Install Dependencies via Chocolatey
+      - name: Create vcpkg Manifest
         shell: powershell
         run: |
-          choco install openssl protobuf -y
+          # Create a lightweight manifest file so vcpkg manages exact compatible versions of protobuf & openssl
+          $vcpkgJson = @{
+              name = "gns-client-deps"
+              version-string = "1.0.0"
+              dependencies = @("protobuf", "openssl")
+          } | ConvertTo-Json -Depth 3
+          Set-Content -Path "vcpkg.json" -Value $vcpkgJson
+
+      - name: Setup vcpkg and Binary Caching
+        uses: lukka/run-vcpkg@v11
+        id: runvcpkg
+        with:
+          vcpkgJsonPath: 'vcpkg.json'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
 
       - name: Build GameNetworkingSockets Library
         shell: cmd
@@ -75,6 +85,7 @@ jobs:
           cd third_party_gns
           mkdir build && cd build
           cmake .. -G "Visual Studio 17 2022" -A x64 ^
+            -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake ^
             -DCMAKE_BUILD_TYPE=Release ^
             -DBUILD_SHARED_LIBS=OFF ^
             -DENABLE_ICE=OFF
@@ -86,12 +97,11 @@ jobs:
           cl.exe /EHsc /O2 /std:c++17 src/client_proxy.cpp ^
             /I.\src ^
             /I.\third_party_gns\include ^
-            /IC:\ProgramData\chocolatey\lib\protobuf\tools\include ^
-            /IC:\Program Files\OpenSSL-Win64\include ^
+            /I%VCPKG_ROOT%\installed\x64-windows\include ^
             .\third_party_gns\build\src\Release\GameNetworkingSockets_s.lib ^
-            C:\ProgramData\chocolatey\lib\protobuf\tools\lib\libprotobuf.lib ^
-            C:\Program Files\OpenSSL-Win64\lib\libssl.lib ^
-            C:\Program Files\OpenSSL-Win64\lib\libcrypto.lib ^
+            %VCPKG_ROOT%\installed\x64-windows\lib\protobuf.lib ^
+            %VCPKG_ROOT%\installed\x64-windows\lib\ssl.lib ^
+            %VCPKG_ROOT%\installed\x64-windows\lib\crypto.lib ^
             ws2_32.lib crypt32.lib advapi32.lib user32.lib shell32.lib legacy_stdio_definitions.lib ^
             /Fe:gns_client.exe
 
@@ -180,7 +190,7 @@ jobs:
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: gns_client_mac
+          name: gns_client_macos
           path: ./bin/macos/
 
       - name: Publish GitHub Release
