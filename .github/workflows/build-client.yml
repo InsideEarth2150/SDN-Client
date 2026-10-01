@@ -63,13 +63,17 @@ jobs:
       - name: Create vcpkg Manifest
         shell: powershell
         run: |
-          # Create a lightweight manifest file so vcpkg manages exact compatible versions of protobuf & openssl
-          $vcpkgJson = @{
-              name = "gns-client-deps"
-              version-string = "1.0.0"
-              dependencies = @("protobuf", "openssl")
-          } | ConvertTo-Json -Depth 3
-          Set-Content -Path "vcpkg.json" -Value $vcpkgJson
+          $vcpkgContent = @'
+          {
+            "name": "gns-client-deps",
+            "version": "1.0.0",
+            "dependencies": [
+              "protobuf",
+              "openssl"
+            ]
+          }
+          '@
+          Set-Content -Path "vcpkg.json" -Value $vcpkgContent -Encoding utf8
 
       - name: Setup vcpkg and Binary Caching
         uses: lukka/run-vcpkg@v11
@@ -190,7 +194,7 @@ jobs:
       - name: Download macOS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: gns_client_macos
+          name: gns_client_mac
           path: ./bin/macos/
 
       - name: Publish GitHub Release
